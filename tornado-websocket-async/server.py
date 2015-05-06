@@ -28,7 +28,6 @@ class MainHandler(tornado.websocket.WebSocketHandler):
         self.log('connected')
         self.clients.append(self)
 
-    @tornado.web.asynchronous
     def on_message(self, message):
         self.log('recv: ' + message)
         self.log('async worker start')
@@ -43,9 +42,10 @@ class MainHandler(tornado.websocket.WebSocketHandler):
         self.log('close')
 
 class ThreadWorker(threading.Thread):
-    def __init__(self, queue):
+    def __init__(self, queue, thread_id):
         threading.Thread.__init__(self)
         self.queue = queue
+        self.thread_id = thread_id
 
     def run(self):
         while True:
@@ -53,10 +53,12 @@ class ThreadWorker(threading.Thread):
                 message, callback = self.queue.get(True, 1)
             except Queue.Empty:
                 continue
+            print 'DEBUG: thread %d got a message[%s]' % (self.thread_id, message)
+
             # cpu intensive work ...
             time.sleep(5)
 
-            result = 'fdsfsdfsdfds' + str(datetime.datetime.now())
+            result = '%d-%s' % (self.thread_id, str(datetime.datetime.now()))
             tornado.ioloop.IOLoop.instance().add_callback(functools.partial(callback, result))
             self.queue.task_done()
 
@@ -68,8 +70,8 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers)
         self.queue = Queue.Queue()
         for i in range(5):
-            print 'starting worker thread', i
-            t = ThreadWorker(self.queue)
+            print 'DEBUG: starting worker thread', i
+            t = ThreadWorker(self.queue, i)
             t.setDaemon(True)
             t.start()
 
