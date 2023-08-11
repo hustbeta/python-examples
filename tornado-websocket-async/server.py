@@ -12,7 +12,7 @@ import tornado.web
 import tornado.websocket
 
 class MainHandler(tornado.websocket.WebSocketHandler):
-    # 服务器内部的数据结构，保存所有的client连接
+    # internal datastructure keeping all the clients info
     clients = []
 
     def log(self, text):
